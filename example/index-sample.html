@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1">
+    <title></title>
+    <!--
+    RichFlyerの各種機能を使用するためのメソッド群です。
+    -->
+    <script src="js/rf-functions.js" id="rffunction"></script>
+    <!--
+    Webプッシュ通知の関連処理をカスタマイズするためのサンプルソースです。
+    通知の購読や解除などを実行します。
+    必要に応じてカスタマイズできます。
+    -->
+    <script src="js/rf-webpush-sample.js" id="rfscript"></script>
+    <!--
+    RichFlyerからの通知を受信するための初期処理。
+    [SDK実行キー]:管理サイトより取得
+    [お客様の環境のドメイン]:本処理を実行するHTMLを設置するドメイン
+    -->
+    <script>window.addEventListener("load", rfinit("[SDK実行キー]","[お客様の環境のドメイン]"), false);</script>
+  </head>
+  <body>
+    <h2>The RichFlyer Webpush Library Sample</h2>
+    <!-- 通知を購読 -->
+    <button type="button" onclick="requestNotificationPermission()">Subscribe!</button><br><br>
+    <!-- 通知の購読を解除 -->
+    <button type="button" onclick="unsubscribe()">Unsbscribe</button><br><br>
+    <!-- セグメントを登録 -->
+    <button type="button" onclick="registSegments()">Regist Segment</button>
+  </body>
+</html>
