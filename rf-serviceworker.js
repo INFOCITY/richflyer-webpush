@@ -18,14 +18,27 @@
  * @param {string} click_action 拡張プロパティに設定した文字列
  * @return {Promise} 結果
  */
-function showNotification({Title:title='',Icon:icon='',Body:body='(with empty payload)',notification_id:tag='',url:data=null,click_action:click_action=null}) {
-    return self.registration.showNotification(title, {
-        icon, // 画像のurl サイズは100px以下を推奨
+function showNotification({Title:title='',Icon:icon='',Body:body='(with empty payload)',notification_id:tag='',url:url=null,click_action:click_action=null,action_buttons:action_buttons=null}) {
+
+    var param = {
+        icon,
         body,
         tag,
-        data, // 通知に表示するurlです
-        vibrate: [400, 100, 400], // モバイル端末の場合のバイブレーションの設定です
-    });
+        vibrate: [400, 100, 400]
+    }
+
+    param.data = click_action ? click_action : url;
+
+    const actions = (action_buttons && Array.isArray(action_buttons)) ? 
+    action_buttons.map((action) => (
+        {'title': action.label, 'action': action.value}
+    )) : null;
+
+    if (actions) {
+        param.actions = actions;
+    }
+
+    return self.registration.showNotification(title, param);
 }
 
 /**
@@ -48,8 +61,11 @@ function receivePush(event) {
  */
 function notificationClick(event) {
     event.notification.close();
-    if (event.notification.data) {
-        event.waitUntil(clients.openWindow(event.notification.data));
+    
+    var extendedProperty = event.notification.data;
+    var action = event.action;
+    if (action) {
+        event.waitUntil(clients.openWindow(action));
     }
 }
 

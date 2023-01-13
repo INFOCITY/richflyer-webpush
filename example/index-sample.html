@@ -18,16 +18,16 @@
     RichFlyerからの通知を受信するための初期処理。
     [SDK実行キー]:管理サイトより取得
     [お客様の環境のドメイン]:本処理を実行するHTMLを設置するドメイン
+    [お客様のWebsitePushId]: p12認証ファイル作成時に指定したWebsite Push Id、SafariPushを使用する際に必要
     -->
-    <script>window.addEventListener("load", rfinit("[SDK実行キー]","[お客様の環境のドメイン]"), false);</script>
   </head>
   <body>
     <h2>The RichFlyer Webpush Library Sample</h2>
     <!-- 通知を購読 -->
-    <button type="button" onclick="requestNotificationPermission()">Subscribe!</button><br><br>
+    <button type="button" onclick="initialize('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId')">Subscribe!</button><br><br>
     <!-- 通知の購読を解除 -->
     <button type="button" onclick="unsubscribe()">Unsbscribe</button><br><br>
     <!-- セグメントを登録 -->
-    <button type="button" onclick="registSegments()">Regist Segment</button>
+    <button type="button" onclick="registSegments('SDK実行キー', 'お客様のWebsitePushId')">Regist Segment</button>
   </body>
 </html>
