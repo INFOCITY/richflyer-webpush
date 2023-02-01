@@ -21,9 +21,10 @@ let safariCallback;
  * @return {string} 標準Webpush通知登録のみ登録結果を返す（成功/granted、拒否/denied）
  */
 async function rf_init(rfServiceKey, domain, websitePushId, safariCallbackFunc) {
-  const serviceWorkerRegistration = await rf_registerServiceWorker();
 
-  if ("pushManager" in serviceWorkerRegistration) {
+  if ("PushManager" in window) {
+    const serviceWorkerRegistration = await rf_registerServiceWorker();
+
     //標準WebPush処理
     const permission = await rf_requestPermission();
 
