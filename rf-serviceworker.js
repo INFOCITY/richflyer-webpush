@@ -62,8 +62,19 @@ function receivePush(event) {
 function notificationClick(event) {
     event.notification.close();
     
+    var actions = event.notification.actions;
     var extendedProperty = event.notification.data;
-    var action = event.action;
+    var selectedAction = event.action;
+
+    var action;
+    if (selectedAction) {
+        action = selectedAction;
+    } else if (extendedProperty) {
+        action = extendedProperty;
+    } else if (actions && actions.length > 0) {
+        action = actions[0].action;
+    }
+
     if (action) {
         event.waitUntil(clients.openWindow(action));
     }
