@@ -1,5 +1,6 @@
 /**
  * rf-function.js
+ * Version 2.1.0
  * RichFlyerの機能を使用するための関数群です。
  *
  * 当ファイルは編集して利用しないでください。
@@ -20,8 +21,12 @@ let safariCallback;
  * @param {function} safariCallbackFunc Safariプッシュ通知の登録が完了した際に呼び出されるコールバック関数
  * @return {string} 標準Webpush通知登録のみ登録結果を返す（成功/granted、拒否/denied）
  */
-async function rf_init(rfServiceKey, domain, websitePushId, safariCallbackFunc) {
-
+async function rf_init(
+  rfServiceKey,
+  domain,
+  websitePushId,
+  safariCallbackFunc
+) {
   if ("PushManager" in window) {
     const serviceWorkerRegistration = await rf_registerServiceWorker();
 
@@ -76,7 +81,11 @@ async function rf_init(rfServiceKey, domain, websitePushId, safariCallbackFunc) 
  */
 async function rf_registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    return navigator.serviceWorker.register("rf-serviceworker.js");
+    return navigator.serviceWorker.register(
+      window.rfSetting
+        ? window.rfSetting.serviceworkerPath
+        : "rf-serviceworker.js"
+    );
   }
 }
 
@@ -86,7 +95,10 @@ async function rf_registerServiceWorker() {
  * @return {PushSubscription} ブラウザから取得したwebプッシュの通知購読情報
  */
 async function getSubscription() {
-  const registration = await navigator.serviceWorker.getRegistration();
+  //WordPressプラグインの場合はスコープを指定する
+  const registration = await navigator.serviceWorker.getRegistration(
+    window.rfSetting ? window.rfSetting.serviceworkerPath : ""
+  );
   const subscription = await registration.pushManager.getSubscription();
   return subscription;
 }
@@ -301,6 +313,88 @@ function rf_deleteLocalAuthKey() {
   localStorage.removeItem("rfAuthKey");
 }
 
+function convertAvailableSegments(segments) {
+
+  var convertedSegments = new Object();
+  Object.keys(segments).forEach ( key => {
+    const value = segments[key];
+
+    if (typeof value == 'string' || value instanceof String) {
+      convertedSegments[key] = value;
+    } else if (typeof value == 'number' || value instanceof Number) {
+      convertedSegments[key] = value.toString();
+    } else if (typeof value == 'boolean' || value instanceof Boolean) {
+      convertedSegments[key] = value.toString();
+    } else if (value instanceof Date) {
+      const unixTime = Math.floor(segments[key].getTime() / 1000);
+      convertedSegments[key] = unixTime.toString();  
+    }
+  })
+
+  return convertedSegments;
+}
+
+/**
+ * セグメント情報をRichFlyerサーバーに登録します。
+ * @param {Object.<string, string>} stringSegments 文字列セグメント情報 - ex. {hobby:"game", category:"young"}
+ * @param {Object.<string, number>} numberSegments 数値セグメント情報 - ex. {count:10, age:30}
+ * @param {Object.<string, boolean>} booleanSegments 真偽値セグメント情報 - ex. {registered:true, purchased:false}
+ * @param {Object.<string, Date>} dateSegments 日時セグメント情報 - ex. {date: new Date()}
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
+ * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
+ */
+async function rf_updateSegments(stringSegments, numberSegments,
+  booleanSegments, dateSegments, rfServiceKey, websitePushId) {
+    const segments = Object.assign(stringSegments, numberSegments, booleanSegments, dateSegments);
+    await rf_updateSegment(segments, rfServiceKey, websitePushId);
+}
+
+/**
+ * 値が文字列のセグメント情報をRichFlyerサーバーに登録します。
+ * @param {Object.<string, string>} stringSegments 文字列セグメント情報 - ex. {hobby:"game", category:"young"}
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
+ * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
+ */
+async function rf_updateStringSegments(segments, rfServiceKey, websitePushId) {
+  await rf_updateSegment(segments, rfServiceKey, websitePushId);
+}
+
+/**
+ * 値が数値のセグメント情報をRichFlyerサーバーに登録します。
+ * @param {Object.<string, number>} numberSegments 数値セグメント情報 - ex. {count:10, age:30}
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
+ * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
+ */
+async function rf_updateNumberSegments(segments, rfServiceKey, websitePushId) {
+  await rf_updateSegment(segments, rfServiceKey, websitePushId);
+}
+
+/**
+ * あたいが真偽値のセグメント情報をRichFlyerサーバーに登録します。
+ * @param {Object.<string, boolean>} booleanSegments 真偽値セグメント情報 - ex. {registered:true, purchased:false}
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
+ * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
+ */
+async function rf_updateBooleanSegments(segments, rfServiceKey, websitePushId) {
+  await rf_updateSegment(segments, rfServiceKey, websitePushId);
+}
+
+/**
+ * 値が日時のセグメント情報をRichFlyerサーバーに登録します。
+ * @param {Object.<string, Date>} dateSegments 日時セグメント情報 - ex. {date: new Date()}
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
+ * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
+ */
+async function rf_updateDateSegments(segments, rfServiceKey, websitePushId) {
+  await rf_updateSegment(segments, rfServiceKey, websitePushId);
+}
+
+
 /**
  * セグメント情報をRichFlyerサーバーに登録します。
  * @param {Object.<string, string>} segments セグメント情報 - ex. {"hobby":"game", "age":"young"}
@@ -309,27 +403,30 @@ function rf_deleteLocalAuthKey() {
  * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
  */
 async function rf_updateSegment(segments, rfServiceKey, websitePushId) {
-  const registration = await navigator.serviceWorker.getRegistration();
-  if (registration.pushManager) {
+ 
+  const sendSegments = convertAvailableSegments(segments);
+  if ("PushManager" in window) {
     //標準WebPushのセグメント登録処理
-    if (await rf_updateSegmentWebpush(segments, rfServiceKey)){
-        return true;
+    if (await rf_updateSegmentWebpush(sendSegments, rfServiceKey)) {
+      return true;
     } else {
-        throw new Error("Update Segment failed.");
+      throw new Error("Update Segment failed.");
     }
   } else {
     //SafariPushのセグメント登録処理
     const rfSafariRemotePermission = await rfSafari_getRemotePermission(
       websitePushId
     );
-    if (await rfSafari_updateSegment(
-      segments,
-      rfServiceKey,
-      rfSafariRemotePermission
-    )) {
-        return true;
+    if (
+      await rfSafari_updateSegment(
+        sendSegments,
+        rfServiceKey,
+        rfSafariRemotePermission
+      )
+    ) {
+      return true;
     } else {
-        throw new Error("Update Segment failed.");
+      throw new Error("Update Segment failed.");
     }
   }
 }
@@ -342,7 +439,6 @@ async function rf_updateSegment(segments, rfServiceKey, websitePushId) {
  */
 async function rf_updateSegmentWebpush(segments, rfServiceKey) {
   const rfSubscription = await getSubscription();
-
   // ローカルストレージからauthKeyを取得する
   let authKey = localStorage.getItem("rfAuthKey");
   if (!authKey) {

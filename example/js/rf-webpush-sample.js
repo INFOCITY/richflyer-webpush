@@ -55,10 +55,16 @@ function unsubscribe() {
  * セグメントを登録します。
  */
 function registSegments(rfServiceKey, websitePushId) {
-  var segments = { hobby: "game", age:"young"};
-  rf_updateSegment(segments, rfServiceKey, websitePushId).then((result) => {
-    console.log(result);
-  }).catch((error) => {
-    console.log(error);
-  });
+
+  var stringSegments = { hobby: "game", category: "young"};
+  var numberSegments = { age: 30, launchCount: 10};
+  var booleanSegments = { registered: true};
+  var dateSegments = { registeredDate: new Date()};
+
+  rf_updateSegments(stringSegments, numberSegments, booleanSegments, dateSegments,
+    rfServiceKey, websitePushId).then((result) => {
+      console.log(result);
+    }).catch((error) => {
+      console.log(error);
+    });
 }
