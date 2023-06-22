@@ -30,5 +30,12 @@
     <button type="button" onclick="unsubscribe()">Unsubscribe</button><br><br>
     <!-- セグメントを登録 -->
     <button type="button" onclick="registSegments('SDK実行キー', 'お客様のWebsitePushId')">Register Segments</button>
+    
+    <!-- 起動イベント -->
+    <script>
+        window.addEventListener('load',  function() {
+            sendLaunchEvent('SDK実行キー')
+        });
+    </script>  
   </body>
 </html>

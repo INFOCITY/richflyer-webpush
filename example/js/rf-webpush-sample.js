@@ -68,3 +68,14 @@ function registSegments(rfServiceKey, websitePushId) {
       console.log(error);
     });
 }
+
+/**
+ * 起動イベントを送ります。
+ */
+function sendLaunchEvent(rfServiceKey) {
+  rf_registerEventLog(rfServiceKey).then((result) => {
+      console.log(result);
+    }).catch((error) => {
+      console.log(error);
+    });
+}

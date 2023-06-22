@@ -1,6 +1,6 @@
 /**
  * rf-function.js
- * Version 2.1.0
+ * Version 2.1.1
  * RichFlyerの機能を使用するための関数群です。
  *
  * 当ファイルは編集して利用しないでください。
@@ -184,11 +184,7 @@ async function rf_activateDevice(sub, rfServiceKey, rfUserDomain) {
     )
       .replace(/\+/g, "-")
       .replace(/\//g, "_");
-    const auth = btoa(
-      String.fromCharCode.apply(null, new Uint8Array(sub.getKey("auth")))
-    )
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_");
+    const auth = rf_createDeviceId(sub);
 
     // device登録APIの実行
     const apiResponse = await fetch(setDeviceAPIURL, {
@@ -239,6 +235,24 @@ async function rf_getServerPublicKey() {
 }
 
 /**
+ * APIリクエストのパスに指定するDeviceIdを生成します。
+ * @param {PushSubscription} rfSubscription ブラウザから取得したwebプッシュの通知購読情報
+ * @returns {string} APIリクエストのパスに指定するDeviceId
+ */
+function rf_createDeviceId(rfSubscription) {
+  const auth = btoa(
+    String.fromCharCode.apply(
+      null,
+      new Uint8Array(rfSubscription.getKey("auth"))
+    )
+  )
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+
+  return auth;
+}
+
+/**
  * 認証トークンを取得します。
  * 認証トークンはローカルストレージで保持されRichFlyer APIで使用されます。
  * 認証トークンの有効期限は60分です。
@@ -255,14 +269,8 @@ async function rf_createAuthKey(rfSubscription, rfServiceKey) {
   this.rf_deleteLocalAuthKey();
 
   try {
-    let auth = btoa(
-      String.fromCharCode.apply(
-        null,
-        new Uint8Array(rfSubscription.getKey("auth"))
-      )
-    )
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_");
+    const auth = rf_createDeviceId(rfSubscription);
+
     let rfAuthKey;
     const apiResponse = await fetch(
       rfApiDomain + "/v1/devices/" + auth + "/authentication-tokens",
@@ -314,22 +322,21 @@ function rf_deleteLocalAuthKey() {
 }
 
 function convertAvailableSegments(segments) {
-
   var convertedSegments = new Object();
-  Object.keys(segments).forEach ( key => {
+  Object.keys(segments).forEach((key) => {
     const value = segments[key];
 
-    if (typeof value == 'string' || value instanceof String) {
+    if (typeof value == "string" || value instanceof String) {
       convertedSegments[key] = value;
-    } else if (typeof value == 'number' || value instanceof Number) {
+    } else if (typeof value == "number" || value instanceof Number) {
       convertedSegments[key] = value.toString();
-    } else if (typeof value == 'boolean' || value instanceof Boolean) {
+    } else if (typeof value == "boolean" || value instanceof Boolean) {
       convertedSegments[key] = value.toString();
     } else if (value instanceof Date) {
       const unixTime = Math.floor(segments[key].getTime() / 1000);
-      convertedSegments[key] = unixTime.toString();  
+      convertedSegments[key] = unixTime.toString();
     }
-  })
+  });
 
   return convertedSegments;
 }
@@ -344,10 +351,21 @@ function convertAvailableSegments(segments) {
  * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
  * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
  */
-async function rf_updateSegments(stringSegments, numberSegments,
-  booleanSegments, dateSegments, rfServiceKey, websitePushId) {
-    const segments = Object.assign(stringSegments, numberSegments, booleanSegments, dateSegments);
-    await rf_updateSegment(segments, rfServiceKey, websitePushId);
+async function rf_updateSegments(
+  stringSegments,
+  numberSegments,
+  booleanSegments,
+  dateSegments,
+  rfServiceKey,
+  websitePushId
+) {
+  const segments = Object.assign(
+    stringSegments,
+    numberSegments,
+    booleanSegments,
+    dateSegments
+  );
+  await rf_updateSegment(segments, rfServiceKey, websitePushId);
 }
 
 /**
@@ -394,6 +412,32 @@ async function rf_updateDateSegments(segments, rfServiceKey, websitePushId) {
   await rf_updateSegment(segments, rfServiceKey, websitePushId);
 }
 
+/**
+ * Bearer認証トークンを取得します。
+ * @param {PushSubscription} rfSubscription ブラウザから取得したwebプッシュの通知購読情報
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @returns {string} Bearer認証トークン
+ */
+async function rf_getAuthKey(rfSubscription, rfServiceKey) {
+  // ローカルストレージからauthKeyを取得する
+  let authKey = localStorage.getItem("rfAuthKey");
+  if (authKey) {
+    return authKey;
+  }
+
+  //ローカルストレージにauthKeyがない場合は再取得
+  if (await rf_createAuthKey(rfSubscription, rfServiceKey)) {
+    authKey = localStorage.getItem("rfAuthKey");
+    if (!authKey) {
+      console.log("error:cant get the rfAuthKey");
+      return;
+    }
+    return authKey;
+  } else {
+    console.log("can't Make rfAuthKey");
+    return;
+  }
+}
 
 /**
  * セグメント情報をRichFlyerサーバーに登録します。
@@ -403,7 +447,6 @@ async function rf_updateDateSegments(segments, rfServiceKey, websitePushId) {
  * @return {boolean} セグメント登録処理の結果（成功/true、失敗/Errorオブジェクト）
  */
 async function rf_updateSegment(segments, rfServiceKey, websitePushId) {
- 
   const sendSegments = convertAvailableSegments(segments);
   if ("PushManager" in window) {
     //標準WebPushのセグメント登録処理
@@ -439,20 +482,10 @@ async function rf_updateSegment(segments, rfServiceKey, websitePushId) {
  */
 async function rf_updateSegmentWebpush(segments, rfServiceKey) {
   const rfSubscription = await getSubscription();
-  // ローカルストレージからauthKeyを取得する
-  let authKey = localStorage.getItem("rfAuthKey");
+
+  const authKey = await rf_getAuthKey(rfSubscription, rfServiceKey);
   if (!authKey) {
-    //再取得
-    if (await rf_createAuthKey(rfSubscription, rfServiceKey)) {
-      authKey = localStorage.getItem("rfAuthKey");
-      if (!authKey) {
-        console.log("error:cant get the rfAuthKey");
-        return false;
-      }
-    } else {
-      console.log("can't Make rfAuthKey");
-      return false;
-    }
+    return false;
   }
 
   if (!rfSubscription) {
@@ -461,14 +494,8 @@ async function rf_updateSegmentWebpush(segments, rfServiceKey) {
   }
 
   try {
-    let auth = btoa(
-      String.fromCharCode.apply(
-        null,
-        new Uint8Array(rfSubscription.getKey("auth"))
-      )
-    )
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_");
+    const auth = rf_createDeviceId(rfSubscription);
+
     // セグメント登録
     const apiResponse = await fetch(
       rfApiDomain + "/v1/devices/" + auth + "/segments",
@@ -713,4 +740,130 @@ async function rfSafari_updateSegment(
     console.log(e);
     return false;
   }
+}
+
+/**
+ * 効果測定ログの登録リクエストをRichFlyerサーバーに送信します。(Webプッシュ)
+ * @param {*} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {*} notificationId プッシュ通知を受信した際に保存されている通知ID
+ * @returns
+ */
+async function rf_registerEventLogWebpush(rfServiceKey, notificationId) {
+  const rfSubscription = await getSubscription();
+
+  const authKey = await rf_getAuthKey(rfSubscription, rfServiceKey);
+  if (!authKey) {
+    return false;
+  }
+
+  if (!rfSubscription) {
+    console.log("rfSubscription undefined");
+    return false;
+  }
+
+  try {
+    const auth = rf_createDeviceId(rfSubscription);
+
+    // 効果測定ログ登録
+    const currentTime = new Date().getTime();
+    const timestamp = Math.floor(currentTime / 1000);
+    const apiResponse = await fetch(
+      rfApiDomain + "/v1/devices/" + auth + "/event-logs-webpush",
+      {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json;charset=UTF-8",
+          Authorization: "Bearer " + authKey,
+          "X-API-Version": "2017-04-01",
+          "X-Service-Key": rfServiceKey,
+        },
+        body: JSON.stringify({
+          notification_id: notificationId,
+          event_id: "richflyer_launch_app",
+          event_time: timestamp,
+        }),
+      }
+    );
+
+    if (apiResponse.status == 200) {
+      return true;
+    } else {
+      // authキーの期限切れの場合はevent_log登録APIから401が返る
+      if (apiResponse.status == 401) {
+        //再取得
+        if (await rf_createAuthKey(rfSubscription, rfServiceKey)) {
+          //event_log登録の再実行
+          return await rf_registerEventLogWebpush(rfServiceKey, notificationId);
+        }
+      } else {
+        const errJson = await apiResponse.json();
+        console.log("status:" + apiResponse.status + " msg:" + errJson.message);
+        return false;
+      }
+    }
+  } catch (e) {
+    console.log(e);
+    return false;
+  }
+}
+
+/**
+ * indexedDBの保存してあるイベントログ送信済みかどうかの値を更新します。
+ * @param {IDBDatabase} _db データベースとの接続。データベースとのトランザクション処理を行うためのみに使用されます。
+ * @param {string} notificationId プッシュ通知を受信した際に保存されている通知ID
+ */
+function updateIsSentEventLog(_db, notificationId) {
+  const transaction = _db.transaction("notification", "readwrite");
+  const store = transaction.objectStore("notification");
+  const sentEventLog = 1;
+  store.put({
+    name: "richflyer_notification",
+    notification_id: notificationId,
+    is_sent_event_log: sentEventLog,
+  });
+}
+
+/**
+ * 効果測定ログをRichFlyerサーバーに登録します。(Webプッシュ)
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ */
+async function rf_registerEventLog(rfServiceKey) {
+  const db = indexedDB.open("richflyer_database", 1);
+
+  //indexedDBが初めて作成された場合にobjectStoreを作成する
+  db.addEventListener("upgradeneeded", (e) => {
+    const _db = e.target.result;
+    if (!_db.objectStoreNames.contains("notification")) {
+      _db.createObjectStore("notification", { keyPath: "name" });
+    }
+  });
+  db.addEventListener("success", () => {
+    const _db = db.result;
+    //オブジェクトストアが存在しない(通知受信履歴がない)場合は何もしない
+    const isExistobjectStore = _db.objectStoreNames.contains("notification");
+    if (!isExistobjectStore) return;
+    const transaction = _db.transaction("notification", "readonly");
+    const store = transaction.objectStore("notification");
+    const getRequest = store.get("richflyer_notification");
+    getRequest.addEventListener("success", async (e) => {
+      if (!e.target.result) return;
+      if ("PushManager" in window) {
+        const isSentEventLog = e.target.result.is_sent_event_log;
+        if (isSentEventLog) return;
+        const notificationId = e.target.result.notification_id;
+        if (await rf_registerEventLogWebpush(rfServiceKey, notificationId)) {
+          updateIsSentEventLog(_db, notificationId);
+          return true;
+        } else {
+          throw new Error("Register event log failed.");
+        }
+      }
+    });
+  });
+  db.addEventListener("error", (e) => {
+    console.log(e);
+    throw new Error("Register event log failed.");
+  });
 }
