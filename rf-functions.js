@@ -1,6 +1,6 @@
 /**
  * rf-function.js
- * Version 2.1.1
+ * Version 2.2.0
  * RichFlyerの機能を使用するための関数群です。
  *
  * 当ファイルは編集して利用しないでください。
@@ -866,4 +866,199 @@ async function rf_registerEventLog(rfServiceKey) {
     console.log(e);
     throw new Error("Register event log failed.");
   });
+}
+
+/**
+ * カスタム許可ダイアログを表示します。
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {string} domain プッシュ通知を許可するウェブサイトのドメイン
+ * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
+ * @param {object} popupSettingValue カスタム許可ダイアログに表示するコンテンツ詳細
+ * const popupSettingValue = {
+    type: {string} 表示タイプ(normal || bar || center)
+    message: {string} メッセージ
+    img: {string} イメージファイル
+    cancelButton: {string} 通知拒否ボタン名
+    submitButton: {string} 通知許可ボタン名
+  }
+ */
+async function rf_init_popup(rfServiceKey, domain, websitePushId, popupSettingValue) {
+  if ("PushManager" in window) {
+    const serviceWorkerRegistration = await rf_registerServiceWorker()
+    const permission = await serviceWorkerRegistration.pushManager.permissionState({userVisibleOnly: true})
+    if (permission !== "prompt") {
+      return
+    }
+  } else if ("safari" in window && "pushNotification" in window.safari) {
+    var permissionData =
+      window.safari.pushNotification.permission(websitePushId)
+    if (permissionData.permission !== "default") {
+      return
+    }
+  }
+  const popup = document.getElementById("popup")
+  if (popup) {
+    return
+  }
+  const type = popupSettingValue.type
+
+  const popupDiv = document.createElement("div")
+  popupDiv.id = "popup"
+  popupDiv.className = `popup-${type}`
+
+  const popupContent = document.createElement("div")
+  popupContent.id = type === "center" ? "popup-center-content" : "popup-content"
+
+  const iconImg = document.createElement("img")
+  iconImg.src = popupSettingValue.img
+  iconImg.id = type === "center" ? "icon-image" : "icon-image-small"
+
+  const popupText = document.createElement("span")
+  popupText.id = type === "center" ? "popup-text-center" : "popup-text"
+  popupText.textContent = popupSettingValue.message
+
+  const popupButtonContent = document.createElement("div")
+  popupButtonContent.id = "popup-button-content"
+
+  const popupButtonCancel = document.createElement("button")
+  popupButtonCancel.id = "popup-button-cancel"
+  popupButtonCancel.textContent = popupSettingValue.cancelButton
+  popupButtonCancel.setAttribute("onclick", `rf_cancel("${type}")`)
+
+  const popupButtonSubmit = document.createElement("button")
+  popupButtonSubmit.id = "popup-button-submit"
+  popupButtonSubmit.textContent = popupSettingValue.submitButton
+  popupButtonSubmit.setAttribute("onclick", `rf_submit("${rfServiceKey}", "${domain}", "${websitePushId}", "${type}")`)
+
+  popupContent.appendChild(iconImg)
+  popupContent.appendChild(popupText)
+  popupButtonContent.appendChild(popupButtonCancel)
+  popupButtonContent.appendChild(popupButtonSubmit)
+  popupDiv.appendChild(popupContent)
+  popupDiv.appendChild(popupButtonContent)
+
+  document.body.appendChild(popupDiv)
+  if (type === "center") {
+    const fullScreenContent = document.createElement("div")
+    fullScreenContent.id = "fullscreen-content"
+    fullScreenContent.className = "fullscreen-content-hidden"
+    document.body.appendChild(fullScreenContent)
+    setTimeout(() => {
+      fullScreenContent.classList.add("fullscreen-content-show")
+    }, 10);
+    const iconInterval = setInterval(() => {
+      if (iconImg.complete) {
+        popupDiv.setAttribute("style", `top: calc(50vh - ${popupDiv.offsetHeight / 2}px)`)
+        const height = iconImg.naturalHeight;
+        const width = iconImg.naturalWidth;
+        height < width ? iconImg.setAttribute("id", "icon-image-oblong") : null;
+        clearInterval(iconInterval)
+      }
+    }, 50)
+  } else {
+    const iconInterval = setInterval(() => {
+      if (iconImg.complete) {
+        const height = iconImg.naturalHeight;
+        const width = iconImg.naturalWidth;
+        height > width
+          ? null
+          : iconImg.setAttribute("id", "icon-image-small-oblong");
+        clearInterval(iconInterval)
+      }
+    }, 50)
+  }
+  
+  setTimeout(() => {
+    popupDiv.classList.add(`popup-${type}-show`);
+  }, 10)
+}
+
+/**
+ * Webプッシュ通知の登録を実行します。
+ * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
+ * @param {string} domain プッシュ通知を許可するウェブサイトのドメイン
+ * @param {string} websitePushId Safariプッシュで作成する証明書に指定したWebsite Push ID
+ * @param {string} type ダイアログの表示タイプ
+ */
+async function rf_submit(rfServiceKey, domain, websitePushId, type) {
+  const popupDiv = document.getElementById("popup")
+  popupDiv.classList.remove(`popup-${type}-show`)
+  if (type === "center") {
+    const fullScreenContent = document.getElementById("fullscreen-content")
+    fullScreenContent.classList.remove("fullscreen-content-show")
+    setTimeout(() => {
+      fullScreenContent.remove()
+    }, 300)
+  }
+  if ("PushManager" in window) {
+    // 通常Webプッシュ処理
+    const serviceWorkerRegistration = await rf_registerServiceWorker();
+  
+    try {
+      const subscription = await rf_requestPushSubscription(
+        serviceWorkerRegistration
+      );
+  
+      const activateDevice = await rf_activateDevice(
+        subscription,
+        rfServiceKey,
+        domain
+      );
+      if (!activateDevice) {
+        //デバイス登録失敗の際はerrorを返す
+        throw new Error("Activate Device failed.");
+      }
+  
+      setTimeout(() => {
+        popupDiv.remove()    
+        return "granted";
+      }, 400)
+    } catch (error) {
+      popupDiv.classList.remove(`popup-${type}-show`)
+      if (type === "center") {
+        const fullScreenContent = document.getElementById("fullscreen-content")
+        fullScreenContent.classList.remove("fullscreen-content-show")
+        setTimeout(() => {
+          fullScreenContent.remove()
+        }, 300)
+      }
+      setTimeout(() => {
+        popupDiv.remove()
+        throw error;
+      }, 400)
+    }
+  } else {
+    safariCallback = safariCallbackFunc;
+    //SafariPush処理
+    if ("safari" in window && "pushNotification" in window.safari) {
+      try {
+        // ブラウザから通知の許可状況を取得します
+        var permissionData =
+          window.safari.pushNotification.permission(websitePushId);
+
+        checkSafariRemotePermission(permissionData, websitePushId);
+      } catch (error) {
+        throw error;
+      }
+    }
+  }
+}
+
+/**
+ * Webプッシュ通知登録が拒否されダイアログを閉じます。
+ * @param {*} type ダイアログの表示タイプ
+ */
+async function rf_cancel(type) {
+  const popupDiv = document.getElementById("popup")
+  popupDiv.classList.remove(`popup-${type}-show`)
+  if (type === "center") {
+    const fullScreenContent = document.getElementById("fullscreen-content")
+    fullScreenContent.classList.remove("fullscreen-content-show")
+    setTimeout(() => {
+      fullScreenContent.remove()
+    }, 300)
+  }
+  setTimeout(() => {
+    popupDiv.remove()
+  }, 400)
 }

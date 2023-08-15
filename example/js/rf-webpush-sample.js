@@ -79,3 +79,15 @@ function sendLaunchEvent(rfServiceKey) {
       console.log(error);
     });
 }
+
+function initialize_popup(rfServiceKey, domain, websitePushId, type) {
+  const popupSettingValue = {
+    type: type,
+    message: "popupコンテンツのサンプルです。通知を受信する場合は「受け取る」をクリックしてください。",
+    img: "./icon/appicon_ios96.png",
+    cancelButton: "キャンセル",
+    submitButton: "受け取る"
+  }
+  rf_init_popup(rfServiceKey, domain, websitePushId, popupSettingValue)
+}
+

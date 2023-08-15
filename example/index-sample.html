@@ -21,6 +21,7 @@
     [お客様の環境のドメイン]:本処理を実行するHTMLを設置するドメイン
     [お客様のWebsitePushId]: p12認証ファイル作成時に指定したWebsite Push Id、SafariPushを使用する際に必要
     -->
+    <link rel="stylesheet" href="./css/rf-dialog-style.css" type="text/css">
   </head>
   <body>
     <h2>The RichFlyer Webpush Library Sample</h2>
@@ -30,6 +31,13 @@
     <button type="button" onclick="unsubscribe()">Unsubscribe</button><br><br>
     <!-- セグメントを登録 -->
     <button type="button" onclick="registSegments('SDK実行キー', 'お客様のWebsitePushId')">Register Segments</button>
+    <!-- カスタム許可ダイアログの表示 -->
+    <br><br>
+    <button onclick="initialize_popup('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId', 'normal')">popup normal</button>
+    <br><br>
+    <button onclick="initialize_popup('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId', 'bar')">popup bar</button>
+    <br><br>
+    <button onclick="initialize_popup('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId', 'center')">popup center</button>
     
     <!-- 起動イベント -->
     <script>
