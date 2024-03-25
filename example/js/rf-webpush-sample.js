@@ -54,12 +54,8 @@ function unsubscribe() {
 /**
  * セグメントを登録します。
  */
-function registSegments(rfServiceKey, websitePushId) {
-
-  var stringSegments = { hobby: "game", category: "young"};
-  var numberSegments = { age: 30, launchCount: 10};
-  var booleanSegments = { registered: true};
-  var dateSegments = { registeredDate: new Date()};
+function registSegments(stringSegments, numberSegments, booleanSegments, dateSegments,
+  rfServiceKey, websitePushId) {
 
   rf_updateSegments(stringSegments, numberSegments, booleanSegments, dateSegments,
     rfServiceKey, websitePushId).then((result) => {
@@ -91,3 +87,18 @@ function initialize_popup(rfServiceKey, domain, websitePushId, type) {
   rf_init_popup(rfServiceKey, domain, websitePushId, popupSettingValue)
 }
 
+async function getLastNotification() {
+  return rf_getLastNotification();
+}
+
+async function clearLastNotification() {
+  return rf_clearLastNotification();
+}
+
+async function clearExtendedProperty() {
+  return rf_clearExtendedProperty();
+}
+
+async function updateClickNotificationStatus(clicked) {
+  return rf_updateClickNotificationStatus(clicked);
+}

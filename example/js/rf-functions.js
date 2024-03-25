@@ -175,7 +175,7 @@ var checkSafariRemotePermission = function (permissionData, websitePushId) {
  */
 async function rf_activateDevice(sub, rfServiceKey, rfUserDomain) {
   //デバイス登録API_URL
-  let setDeviceAPIURL = rfApiDomain + "/v1/devices/webpush";
+  let setDeviceAPIURL = `${rfApiDomain}/v1/devices/webpush`;
 
   try {
     const endpoint = sub.endpoint;
@@ -229,7 +229,7 @@ function decodeBase64URL(str) {
  * @return {string} 公開鍵
  */
 async function rf_getServerPublicKey() {
-  let appServerPublicKeyURL = rfApiDomain + "/v1/webpush/key";
+  let appServerPublicKeyURL = `${rfApiDomain}/v1/webpush/key`;
   const apiResponse = await fetch(appServerPublicKeyURL);
   return await apiResponse.text();
 }
@@ -273,7 +273,7 @@ async function rf_createAuthKey(rfSubscription, rfServiceKey) {
 
     let rfAuthKey;
     const apiResponse = await fetch(
-      rfApiDomain + "/v1/devices/" + auth + "/authentication-tokens",
+      `${rfApiDomain}/v1/devices/${auth}/authentication-tokens`,
       {
         method: "POST",
         mode: "cors",
@@ -498,7 +498,7 @@ async function rf_updateSegmentWebpush(segments, rfServiceKey) {
 
     // セグメント登録
     const apiResponse = await fetch(
-      rfApiDomain + "/v1/devices/" + auth + "/segments",
+      `${rfApiDomain}/v1/devices/${auth}/segments`,
       {
         method: "PUT",
         mode: "cors",
@@ -564,7 +564,7 @@ async function rfSafari_getDeviceId(rfServiceKey, rfSafariRemotePermission) {
   try {
     const deviceToken = rfSafariRemotePermission.deviceToken;
     const apiResponse = await fetch(
-      rfApiDomain + "/v1/safari/devices/" + deviceToken + "/deviceID/",
+      `${rfApiDomain}/v1/safari/devices/${deviceToken}/deviceID/`,
       {
         method: "GET",
         mode: "cors",
@@ -615,7 +615,7 @@ async function rfSafari_createAuthKey(rfServiceKey, rfSafariRemotePermission) {
     );
     let rfAuthKey;
     const apiResponse = await fetch(
-      rfApiDomain + "/v1/devices/" + deviceId + "/authentication-tokens",
+      `${rfApiDomain}/v1/devices/${deviceId}/authentication-tokens`,
       {
         method: "POST",
         mode: "cors",
@@ -697,7 +697,7 @@ async function rfSafari_updateSegment(
     );
     // セグメント登録
     const apiResponse = await fetch(
-      rfApiDomain + "/v1/devices/" + deviceId + "/segments",
+      `${rfApiDomain}/v1/devices/${deviceId}/segments`,
       {
         method: "PUT",
         mode: "cors",
@@ -743,13 +743,13 @@ async function rfSafari_updateSegment(
 }
 
 /**
- * 効果測定ログの登録リクエストをRichFlyerサーバーに送信します。(Webプッシュ)
+ * 効果測定ログの登録リクエストをRichFlyerサーバーに送信します。(標準Webプッシュのみ)
  * @param {*} rfServiceKey RichFlyerで発行されるSDK実行キー
  * @param {*} notificationId プッシュ通知を受信した際に保存されている通知ID
+ * @param {PushSubscription} rfSubscription ブラウザから取得したwebプッシュの通知購読情報
  * @returns
  */
-async function rf_registerEventLogWebpush(rfServiceKey, notificationId) {
-  const rfSubscription = await getSubscription();
+async function rf_requestRegisterEventLog(rfServiceKey, notificationId, rfSubscription, retry = 3) {
 
   const authKey = await rf_getAuthKey(rfSubscription, rfServiceKey);
   if (!authKey) {
@@ -757,18 +757,18 @@ async function rf_registerEventLogWebpush(rfServiceKey, notificationId) {
   }
 
   if (!rfSubscription) {
-    console.log("rfSubscription undefined");
+    console.log("rfSubscription is undefined");
     return false;
   }
 
   try {
-    const auth = rf_createDeviceId(rfSubscription);
+    const auth = await rf_createDeviceId(rfSubscription);
 
     // 効果測定ログ登録
     const currentTime = new Date().getTime();
     const timestamp = Math.floor(currentTime / 1000);
     const apiResponse = await fetch(
-      rfApiDomain + "/v1/devices/" + auth + "/event-logs-webpush",
+      `${rfApiDomain}/v1/devices/${auth}/event-logs-webpush`,
       {
         method: "POST",
         mode: "cors",
@@ -795,7 +795,8 @@ async function rf_registerEventLogWebpush(rfServiceKey, notificationId) {
         //再取得
         if (await rf_createAuthKey(rfSubscription, rfServiceKey)) {
           //event_log登録の再実行
-          return await rf_registerEventLogWebpush(rfServiceKey, notificationId);
+          const leftRetry = retry - 1;
+          return await rf_requestRegisterEventLog(rfServiceKey, notificationId, rfSubscription, leftRetry);
         }
       } else {
         const errJson = await apiResponse.json();
@@ -809,20 +810,30 @@ async function rf_registerEventLogWebpush(rfServiceKey, notificationId) {
   }
 }
 
+async function prepareEventLog() {
+  const db = await openDatabase();
+  const rfObject = await getStoredRFObject(db);
+
+  if (rfObject) {
+    const isSentLog = rfObject.is_sent_event_log;
+    if (isSentLog==0) {
+      return rfObject.notification_id;
+    }
+  }
+  return null;
+}
+
 /**
  * indexedDBの保存してあるイベントログ送信済みかどうかの値を更新します。
- * @param {IDBDatabase} _db データベースとの接続。データベースとのトランザクション処理を行うためのみに使用されます。
  * @param {string} notificationId プッシュ通知を受信した際に保存されている通知ID
  */
-function updateIsSentEventLog(_db, notificationId) {
-  const transaction = _db.transaction("notification", "readwrite");
-  const store = transaction.objectStore("notification");
-  const sentEventLog = 1;
-  store.put({
-    name: "richflyer_notification",
-    notification_id: notificationId,
-    is_sent_event_log: sentEventLog,
-  });
+async function updateIsSentEventLog(notificationId) {
+  const db = await openDatabase();
+  const rfObject = await getStoredRFObject(db);
+  if (rfObject) {
+    rfObject.is_sent_event_log = 1;
+    await updateStoredRFObject(db, rfObject);  
+  }
 }
 
 /**
@@ -830,43 +841,25 @@ function updateIsSentEventLog(_db, notificationId) {
  * @param {string} rfServiceKey RichFlyerで発行されるSDK実行キー
  */
 async function rf_registerEventLog(rfServiceKey) {
-  const db = indexedDB.open("richflyer_database", 1);
 
-  //indexedDBが初めて作成された場合にobjectStoreを作成する
-  db.addEventListener("upgradeneeded", (e) => {
-    const _db = e.target.result;
-    if (!_db.objectStoreNames.contains("notification")) {
-      _db.createObjectStore("notification", { keyPath: "name" });
-    }
-  });
-  db.addEventListener("success", () => {
-    const _db = db.result;
-    //オブジェクトストアが存在しない(通知受信履歴がない)場合は何もしない
-    const isExistobjectStore = _db.objectStoreNames.contains("notification");
-    if (!isExistobjectStore) return;
-    const transaction = _db.transaction("notification", "readonly");
-    const store = transaction.objectStore("notification");
-    const getRequest = store.get("richflyer_notification");
-    getRequest.addEventListener("success", async (e) => {
-      if (!e.target.result) return;
-      if ("PushManager" in window) {
-        const isSentEventLog = e.target.result.is_sent_event_log;
-        if (isSentEventLog) return;
-        const notificationId = e.target.result.notification_id;
-        if (await rf_registerEventLogWebpush(rfServiceKey, notificationId)) {
-          updateIsSentEventLog(_db, notificationId);
-          return true;
-        } else {
-          throw new Error("Register event log failed.");
-        }
-      }
-    });
-  });
-  db.addEventListener("error", (e) => {
-    console.log(e);
+  if (!("PushManager" in window)) {
+    throw new Error("This environment is not support for registering event logs.");
+  }
+  
+  const notificationId = await prepareEventLog();
+  if (!notificationId) {
+    throw new Error("Event log has already send.");
+  }
+
+  const rfSubscription = await getSubscription();    
+  if (!await rf_requestRegisterEventLog(rfServiceKey, notificationId, rfSubscription)) {
     throw new Error("Register event log failed.");
-  });
+  }
+
+  await updateIsSentEventLog(notificationId);
+  return true;    
 }
+
 
 /**
  * カスタム許可ダイアログを表示します。
@@ -1062,3 +1055,168 @@ async function rf_cancel(type) {
     popupDiv.remove()
   }, 400)
 }
+
+
+/**
+ * 最後に取得したプッシュ通知の情報を取得します。
+ * @return {object} プッシュ通知の情報
+   const resultObject = {
+      notificationId:        {string} 通知ID
+      title:                 {string} タイトル
+      body:                  {string} 本文
+      extendedProperty:      {string} 拡張プロパティ
+      isClickedNotification: {number} 1:通知をクリックした 0:通知をクリックしていない
+      receivedDate:          {number} 受信日時(UnixTime
+    }
+ */
+async function rf_getLastNotification() {
+  return getLastRFNotification();
+}
+
+/**
+ * 最後に取得したプッシュ通知の情報を削除します。
+ * @return {boolean} 成否
+ */
+async function rf_clearLastNotification() {
+  return clearLastRFNotification();
+}
+
+/**
+ * 保存されている拡張プロパティを削除します。
+ * @return {boolean} 成否
+ */
+async function rf_clearExtendedProperty() {
+  return clearRFExtendedProperty();
+}
+
+/**
+ * プッシュ通知通知をクリックしたか否かの記録を更新します。
+ * @param {boolean} clicked true:クリックした false:クリックしていない
+ * @return {boolean} 成否
+ */
+async function rf_updateClickNotificationStatus(clicked) {
+  return updateRFClickNotificationStatus(clicked);
+}
+
+async function getLastRFNotification() {
+
+  const db = await openDatabase();
+  const rfObject = await getStoredRFObject(db);
+
+  if (rfObject) {
+    const resultObject = {
+      notificationId: rfObject.notification_id,
+      title: rfObject.title,
+      body: rfObject.body,
+      extendedProperty: rfObject.extended_property,
+      isClickedNotification: rfObject.is_clicked_notification,
+      receivedDate: rfObject.received_date
+    };
+    return resultObject;
+  }
+  return null;
+}
+
+async function clearLastRFNotification() {
+
+  const db = await openDatabase();
+  const rfObject = await getStoredRFObject(db);
+
+  if (rfObject) {
+    rfObject.notification_id = "";
+    rfObject.title = "";
+    rfObject.body = "";
+    rfObject.extended_property = "";
+    rfObject.is_clicked_notification = true;
+    rfObject.received_date = 0;
+    return await updateStoredRFObject(db, rfObject);
+  } else {
+    return false;
+  }
+}
+
+async function clearRFExtendedProperty() {
+
+  const db = await openDatabase();
+  const rfObject = await getStoredRFObject(db);
+
+  if (rfObject) {
+    rfObject.extended_property = "";
+    return await updateStoredRFObject(db, rfObject);
+  } else {
+    return false;
+  }
+}
+
+async function updateRFClickNotificationStatus(clicked) {
+  const db = await openDatabase();
+  const rfObject = await getStoredRFObject(db);
+
+  if (rfObject) {
+    rfObject.is_clicked_notification = clicked ? 1 : 0;
+    return await updateStoredRFObject(db, rfObject);
+  } else {
+    return false;
+  }
+}
+
+// #region indexed DB
+function openDatabase() {
+  const promise = new Promise((resolve, reject) => {
+    const db = indexedDB.open("richflyer_database", 1);
+    db.onsuccess = (event) => resolve(event.target.result);
+    db.onerror = (event) => reject();
+    db.onupgradeneeded = (event) => onUpgradeDB(event.target.result);
+  });
+
+  return promise;
+}
+
+function onUpgradeDB(db) {
+  const storeName = getRFObjectStoreName();
+  if (!db.objectStoreNames.contains(storeName)) {
+    db.createObjectStore(storeName, { keyPath: "name" });
+  }
+
+}
+
+function getRFObjectStoreName() {
+  return "notification";
+}
+
+function getStoredRFObjectName() {
+  return "richflyer_notification";
+}
+
+async function getStoredRFObject(db) {
+  return new Promise((resolve, reject) => {
+    const storeName = getRFObjectStoreName();
+    const storedObjectName = getStoredRFObjectName();
+
+    const isExistobjectStore = db.objectStoreNames.contains(storeName);    
+    if (!isExistobjectStore) {
+      reject(null);
+      return;
+    }
+
+    const transaction = db.transaction(storeName, "readonly");
+    const objectStore = transaction.objectStore(storeName);
+    const rfObject = objectStore.get(storedObjectName);
+    rfObject.onsuccess = (event) => resolve(event.target.result);
+    rfObject.onerror = reject;
+  });
+}
+
+async function updateStoredRFObject(db, rfObject) {
+  return new Promise((resolve, reject) => {
+    const storeName = getRFObjectStoreName();
+
+    const transaction = db.transaction(storeName, "readwrite");
+    const store = transaction.objectStore(storeName);
+    const result = store.put(rfObject);
+    result.onsuccess = () => resolve(true);
+    result.onerror = reject;
+  });
+}
+
+// #endregion

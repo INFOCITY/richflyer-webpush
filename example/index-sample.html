@@ -22,28 +22,296 @@
     [お客様のWebsitePushId]: p12認証ファイル作成時に指定したWebsite Push Id、SafariPushを使用する際に必要
     -->
     <link rel="stylesheet" href="./css/rf-dialog-style.css" type="text/css">
+
   </head>
   <body>
     <h2>The RichFlyer Webpush Library Sample</h2>
-    <!-- 通知を購読 -->
-    <button type="button" onclick="initialize('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId')">Subscribe!</button><br><br>
-    <!-- 通知の購読を解除 -->
-    <button type="button" onclick="unsubscribe()">Unsubscribe</button><br><br>
-    <!-- セグメントを登録 -->
-    <button type="button" onclick="registSegments('SDK実行キー', 'お客様のWebsitePushId')">Register Segments</button>
-    <!-- カスタム許可ダイアログの表示 -->
-    <br><br>
-    <button onclick="initialize_popup('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId', 'normal')">popup normal</button>
-    <br><br>
-    <button onclick="initialize_popup('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId', 'bar')">popup bar</button>
-    <br><br>
-    <button onclick="initialize_popup('SDK実行キー','お客様の環境のドメイン', 'お客様のWebsitePushId', 'center')">popup center</button>
-    
-    <!-- 起動イベント -->
+
     <script>
-        window.addEventListener('load',  function() {
-            sendLaunchEvent('SDK実行キー')
+      // JavaScriptメソッドを定義
+      function describe() {
+          // 選択メニューの値を取得
+          var serviceKey = document.getElementById('serviceKey').value;
+          var websitePushId = document.getElementById('WebsitePushId').value;
+          var popupType = document.getElementById('popupType').value;
+
+          if (popupType == 'nothing') {
+            initialize(serviceKey, window.location.hostname, websitePushId);
+          } else {
+            initialize_popup(serviceKey, window.location.hostname, websitePushId, popupType);
+          }
+      }
+
+      function registerRFSegments() {
+        var serviceKey = document.getElementById('serviceKey').value;
+        var websitePushId = document.getElementById('WebsitePushId').value;
+
+        var segTextKey1 = document.getElementById('segTextKey1').value;
+        var segTextValue1 = document.getElementById('segTextValue1').value;
+        var segTextKey2 = document.getElementById('segTextKey2').value;
+        var segTextValue2 = document.getElementById('segTextValue2').value;
+        var stringSegments = {};
+        if (segTextKey1.length > 0 && segTextValue1.length > 0) {
+          stringSegments[segTextKey1] = segTextValue1;
+        }
+        if (segTextKey2.length > 0 && segTextKey2.length > 0) {
+          stringSegments[segTextKey2] = segTextValue2;
+        }
+
+        var segNumberKey1 = document.getElementById('segNumberKey1').value;
+        var segNumberValue1 = document.getElementById('segNumberValue1').value;
+        var segNumberKey2 = document.getElementById('segNumberKey2').value;
+        var segNumberValue2 = document.getElementById('segNumberValue2').value;
+        var numberSegments = {};
+        if (segNumberKey1.length > 0 && segNumberValue1.length > 0) {
+          numberSegments[segNumberKey1] = Number(segNumberValue1);
+        }
+        if (segNumberKey2.length > 0 && segNumberValue2.length > 0) {
+          numberSegments[segNumberKey2] = Number(segNumberValue2);
+        }
+
+        var segBoolKey1 = document.getElementById('segBoolKey1').value;
+        var segBoolValue1 = document.getElementById('segBoolValue1').value;
+        var segBoolKey2 = document.getElementById('segBoolKey2').value;
+        var segBoolValue2 = document.getElementById('segBoolValue2').value;
+        var booleanSegments = {};
+        if (segBoolKey1.length > 0 && segBoolValue1.length > 0) {
+          booleanSegments[segBoolKey1] = (segBoolValue1 == 'true');
+        }
+        if (segBoolKey2.length > 0 && segBoolValue2.length > 0) {
+          booleanSegments[segBoolKey2] = (segBoolValue2 == 'true');
+        }
+
+        var segDateKey1 = document.getElementById('segDateKey1').value;
+        var segDateValue1 = document.getElementById('segDateValue1').value;
+        var segDateKey2 = document.getElementById('segDateKey2').value;
+        var segDateValue2 = document.getElementById('segDateValue2').value;
+        var dateSegments = {};
+        if (segDateKey1.length > 0 && segDateValue1.length > 0) {
+          dateSegments[segDateKey1] = new Date(segDateValue1);
+        }
+        if (segDateKey2.length > 0 && segDateValue2.length > 0) {
+          dateSegments[segDateKey2] = new Date(segDateValue2);
+        }
+        registSegments(stringSegments, numberSegments, booleanSegments, dateSegments, serviceKey, websitePushId);
+
+      }
+
+      function postEventMessage() {
+
+        var serviceKey = document.getElementById('serviceKey').value;
+        var websitePushId = document.getElementById('WebsitePushId').value;
+
+        var events = [];
+        var event1 = document.getElementById('event1').value;
+        var event2 = document.getElementById('event2').value;
+        if (event1.length > 0) {
+          events.push(event1);
+        }
+        if (event2.length > 0) {
+          events.push(event2);
+        }
+
+        var variable = {};
+        var variableName1 = document.getElementById('variableName1').value;
+        var variableValue1 = document.getElementById('variableValue1').value;
+        var variableName2 = document.getElementById('variableName2').value;
+        var variableValue2 = document.getElementById('variableValue2').value;
+        var variableName3 = document.getElementById('variableName3').value;
+        var variableValue3 = document.getElementById('variableValue3').value;
+        if (variableName1.length > 0 && variableValue1.length > 0) {
+          variable[variableName1] = variableValue1;
+        }
+        if (variableName2.length > 0 && variableValue2.length > 0) {
+          variable[variableName2] = variableValue2;          
+        }
+        if (variableName3.length > 0 && variableValue3.length > 0) {
+          variable[variableName3] = variableValue3;                    
+        }
+
+        var standbyTime = document.getElementById('standbyTime').value;
+        if (standbyTime.length > 0) {
+          postMessage(events, variable, Number(standbyTime), serviceKey, websitePushId);
+        } else {
+          postMessage(events, variable, null, serviceKey, websitePushId);
+        }
+
+      }
+
+      function sendLaunchEventLog() {
+        sendLaunchEvent(document.getElementById('serviceKey').value);
+      }
+
+      function showLastNotification() {
+        getLastNotification().then((notification) => {
+          var message = "";
+          message += "タイトル: " + notification.title + "\n";
+          message += "本文: " + notification.body + "\n";
+          message += "通知ID: " + notification.notificationId + "\n";
+          message += "拡張プロパティ: " + notification.extendedProperty + "\n";
+          message += "クリックされたか: " + (notification.isClickedNotification == 0 ? "いいえ" : "はい") + "\n";
+          message += "\n拡張プロパティのURLを開きますか？";
+
+          if (confirm(message) == true) {
+            window.location.href = notification.extendedProperty;
+          }
+        }).catch((error) => {
+
         });
-    </script>  
+      }
+
+      function removeExtendedProperty() {
+        clearExtendedProperty().then((result) => {
+          alert("拡張プロパティ削除完了！");
+        }).catch((error) => {
+          alert("拡張プロパティ削除失敗！");
+        });
+      }
+
+      function removeLastNotification() {
+        clearLastNotification().then((result) => {
+          alert("通知削除完了！");
+        }).catch((error) => {
+          alert("通知削除失敗！");
+        });
+      }
+
+      function updateClickStatus() {
+        
+        var clickedStatus = document.getElementById('clickedStatus').value;
+        updateClickNotificationStatus((clickedStatus=='true' ? true: false)).then((result) => {
+          alert("クリックステータス変更完了");
+        }).catch((error) => {
+          alert("クリックステータス変更失敗");
+        });
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        console.log(document.visibilityState);
+        if (document.visibilityState == 'visible') {
+          getLastNotification().then((notification) => {
+            if (!notification.isClickedNotification &&
+              notification.extendedProperty && notification.extendedProperty.length > 0) {
+              console.log(notification.extendedProperty);
+              window.location.href = notification.extendedProperty;
+              clearExtendedProperty();
+            }
+          }).catch((error) => {
+  
+          });
+        }
+      });
+  </script>
+
+    <h3>基本情報</h3>
+
+    <label for="serviceKey">SDK実行キー:</label>
+    <input type="text" id="serviceKey" name="serviceKey" value="">
+    <br>
+    <label for="WebsitePushId">WebsitePushId:</label>
+    <input type="text" id="WebsitePushId" name="WebsitePushId" value="">
+
+
+    <br><br>
+
+    <h3>購読</h3>
+
+    <!-- 通知を購読 -->
+    <form>
+      <label for="popupType">購読ポップアップ:</label>
+      <select id="popupType" name="popupType">
+        <option value="nothing">なし</option>
+        <option value="normal">標準</option>
+        <option value="bar">幅広</option>
+        <option value="center">中央</option>
+      </select>
+
+      <br><br>
+
+      <!-- ボタンがクリックされたときにJavaScriptメソッドを呼び出す -->
+      <button type="button" onclick="describe()">購読</button>
+    </form>    
+
+    <br><br>
+
+
+    <h3>セグメント登録</h3>
+    テキスト<br>
+    <label for="segTextKey1">キー:</label>
+    <input type="text" id="segTextKey1" name="segTextKey1">
+    <label for="segTextValue1">  値:</label>
+    <input type="text" id="segTextValue1" name="segTextValue1">
+    <br>
+    <label for="segTextKey2">キー:</label>
+    <input type="text" id="segTextKey2" name="segTextKey2">
+    <label for="segTextValue2">  値:</label>
+    <input type="text" id="segTextValue2" name="segTextValue2">
+    <br>
+    <br>
+    数値<br>
+    <label for="segNumberKey1">キー:</label>
+    <input type="text" id="segNumberKey1" name="segNumberKey1">
+    <label for="segNumberValue1">  値:</label>
+    <input type="number" id="segNumberValue1" name="segNumberValue1">
+    <br>
+    <label for="segNumberKey2">キー:</label>
+    <input type="text" id="segNumberKey2" name="segNumberKey2">
+    <label for="segNumberValue1">  値:</label>
+    <input type="number" id="segNumberValue2" name="segNumberValue2">
+    <br>
+    <br>
+    真偽値<br>
+    <form>
+      <label for="segBoolKey1">キー:</label>
+      <input type="text" id="segBoolKey1" name="segBoolKey1">
+      <label for="segBoolValue1">  値:</label>
+      <select id="segBoolValue1" name="segBoolValue1">
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+
+      <br>
+
+      <label for="segBoolKey2">キー:</label>
+      <input type="text" id="segBoolKey2" name="segBoolKey2">
+      <label for="segBoolValue2">  値:</label>
+      <select id="segBoolValue2" name="segBoolValue2">
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+    </form>
+    <br>
+    日付<br>
+    <label for="segDateKey1">キー:</label>
+    <input type="text" id="segDateKey1" name="segDateKey1">
+    <label for="segDateValue1">  値:</label>
+    <input type="date" id="segDateValue1" name="segDateValue1">
+    <br>
+    <label for="segDateKey2">キー:</label>
+    <input type="text" id="segDateKey2" name="segDateKey2">
+    <label for="segDateValue2">  値:</label>
+    <input type="date" id="segDateValue2" name="segDateValue2">
+    <br><br>
+
+
+    <!-- セグメントを登録 -->
+    <button type="button" onclick="registerRFSegments()">セグメント登録</button><br><br>
+
+    <h3>起動イベント送信</h3>
+    <!-- セグメントを登録 -->
+    <button type="button" onclick="sendLaunchEventLog()">起動イベント送信</button><br><br>
+
+    <h3>受信した通知</h3>
+    <button type="button" onclick="showLastNotification()">表示</button><br><br>
+    <button type="button" onclick="removeExtendedProperty()">拡張プロパティ削除</button><br><br>
+    <button type="button" onclick="removeLastNotification()">最後の通知を削除</button><br><br>    
+
+    <label for="clickedStatus">  値:</label>
+    <select id="clickedStatus" name="clickedStatus">
+      <option value="true">true</option>
+      <option value="false">false</option>
+    </select>
+    <button type="button" onclick="updateClickStatus()">通知クリック状態の変更</button><br><br>
+
   </body>
 </html>
