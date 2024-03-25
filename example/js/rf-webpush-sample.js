@@ -87,6 +87,19 @@ function initialize_popup(rfServiceKey, domain, websitePushId, type) {
   rf_init_popup(rfServiceKey, domain, websitePushId, popupSettingValue)
 }
 
+function postMessage(events, variable, standbyTime, rfServiceKey, websitePushId) {
+  rf_postMessage(rfServiceKey, events, variable, standbyTime, websitePushId).then((eventPostId) => {
+    console.log(eventPostId);
+//    rf_cancelMessage(rfServiceKey, eventPostId).then((result) => {
+//      console.log(result);
+//    }).catch((error) => {
+//      console.log(error);
+//    })
+  }).catch((error) => {
+    console.log(error);
+  });
+}
+
 async function getLastNotification() {
   return rf_getLastNotification();
 }
@@ -102,3 +115,4 @@ async function clearExtendedProperty() {
 async function updateClickNotificationStatus(clicked) {
   return rf_updateClickNotificationStatus(clicked);
 }
+

@@ -14,6 +14,7 @@
  * @param {string} Icon 表示する画像のURL。RichFlyerの管理サイトで指定した画像。Webプッシュ用にリサイズされている。
  * @param {string} Body 通知の本文
  * @param {string} notification_id RichFlyerで割り当てられた通知ID
+ * @param {string} event_id イベント投稿の際に割り当てられたイベントID
  * @param {string} url 一番目のアクションボタンに設定したURL
  * @param {string} click_action 拡張プロパティに設定した文字列
  * @return {Promise} 結果
@@ -22,11 +23,16 @@ function showNotification({
   Title: title = "",
   Icon: icon = "",
   Body: body = "(with empty payload)",
-  notification_id: tag = "",
+  notification_id: notification_id = "",
+  event_id: event_id = "",
   url: url = null,
   click_action: click_action = null,
   action_buttons: action_buttons = null,
 }) {
+  var tag = notification_id;
+  if (event_id && event_id.length > 0) {
+    tag = event_id;
+  }
   var param = {
     body,
     tag,

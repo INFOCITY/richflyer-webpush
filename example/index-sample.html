@@ -160,6 +160,14 @@
         });
       }
 
+      function removeLastNotification() {
+        clearLastNotification().then((result) => {
+          alert("通知削除完了！");
+        }).catch((error) => {
+          alert("通知削除失敗！");
+        });
+      }
+
       function removeExtendedProperty() {
         clearExtendedProperty().then((result) => {
           alert("拡張プロパティ削除完了！");
@@ -185,6 +193,7 @@
           alert("クリックステータス変更失敗");
         });
       }
+      
 
       document.addEventListener('visibilitychange', () => {
         console.log(document.visibilityState);
@@ -200,7 +209,7 @@
   
           });
         }
-      });
+      });      
   </script>
 
     <h3>基本情報</h3>
@@ -297,6 +306,35 @@
     <!-- セグメントを登録 -->
     <button type="button" onclick="registerRFSegments()">セグメント登録</button><br><br>
 
+
+    <h3>イベント登録</h3>
+    <!-- 単発投稿 -->
+    <label for="event1">イベント名:</label><br>
+    <input type="text" id="event1" name="event1"><br>
+    <input type="text" id="event2" name="event2"><br>
+    <br>
+    <label for="variable">変数:</label><br>
+    <label for="variableName1">名前:</label>
+    <input type="text" id="variableName1" name="variableName1">
+    <label for="variableValue1">  値:</label>
+    <input type="text" id="variableValue1" name="variableValue1">
+    <br>
+    <label for="variableName2">名前:</label>
+    <input type="text" id="variableName2" name="variableName2">
+    <label for="variableValue2">  値:</label>
+    <input type="text" id="variableValue2" name="variableValue2">
+    <br>
+    <label for="variableName3">名前:</label>
+    <input type="text" id="variableName3" name="variableName3">
+    <label for="variableValue3">  値:</label>
+    <input type="text" id="variableValue3" name="variableValue3">
+    <br><br>
+    <label for="standbyTime">待機時間:</label>
+    <input type="number" id="standbyTime" name="standbyTime">分
+    <br><br>
+    <button type="button" onclick="postEventMessage()">イベント投稿送信</button><br><br>
+
+
     <h3>起動イベント送信</h3>
     <!-- セグメントを登録 -->
     <button type="button" onclick="sendLaunchEventLog()">起動イベント送信</button><br><br>
@@ -304,7 +342,7 @@
     <h3>受信した通知</h3>
     <button type="button" onclick="showLastNotification()">表示</button><br><br>
     <button type="button" onclick="removeExtendedProperty()">拡張プロパティ削除</button><br><br>
-    <button type="button" onclick="removeLastNotification()">最後の通知を削除</button><br><br>    
+    <button type="button" onclick="removeLastNotification()">最後の通知の削除</button><br><br>
 
     <label for="clickedStatus">  値:</label>
     <select id="clickedStatus" name="clickedStatus">
@@ -312,6 +350,6 @@
       <option value="false">false</option>
     </select>
     <button type="button" onclick="updateClickStatus()">通知クリック状態の変更</button><br><br>
-
+    
   </body>
 </html>
