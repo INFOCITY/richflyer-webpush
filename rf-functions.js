@@ -1,6 +1,6 @@
 /**
  * rf-function.js
- * Version 2.4.0
+ * Version 2.4.1
  * RichFlyerの機能を使用するための関数群です。
  *
  * 当ファイルは編集して利用しないでください。
@@ -1285,6 +1285,15 @@ function supportSafariPush() {
  */
 async function rf_registerServiceWorker() {
   if ("serviceWorker" in navigator) {
+
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      const scriptUrl = registration.active.scriptURL;
+      if (scriptUrl.includes("rf-serviceworker.js")) {
+        return registration;
+      }
+    } 
+
     return navigator.serviceWorker.register(
       window.rfSetting
         ? window.rfSetting.serviceworkerPath

@@ -145,18 +145,9 @@ function notificationClick(event) {
   event.waitUntil(processChain);
 }
 
-async function openUrl(url) {
-  clients.matchAll({ type: "window" }).then((clientsArr) => {
-    const hadWindowToFocus = clientsArr.some((windowClient) =>
-      windowClient.url === url
-        ? (windowClient.focus(), true)
-        : false,
-    );
-
-    if (!hadWindowToFocus)
-      clients
-        .openWindow(url)
-        .then((windowClient) => (windowClient ? windowClient.focus() : null));
+function openUrl(url) {
+  return clients.matchAll({ type: "window" }).then((clientsArr) => {
+    return clients.openWindow(url);
   });  
 }
 
