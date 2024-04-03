@@ -1,6 +1,6 @@
 /**
  * rf-function.js
- * Version 2.2.0
+ * Version 2.2.3
  * RichFlyerの機能を使用するための関数群です。
  *
  * 当ファイルは編集して利用しないでください。

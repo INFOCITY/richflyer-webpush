@@ -139,9 +139,9 @@ function notificationClick(event) {
   event.waitUntil(processChain);
 }
 
-async function openUrl(url) {
-  clients.matchAll({ type: "window" }).then((clientsArr) => {
-    clients.openWindow(url);
+function openUrl(url) {
+  return clients.matchAll({ type: "window" }).then((clientsArr) => {
+    return clients.openWindow(url);
   });  
 }
 
